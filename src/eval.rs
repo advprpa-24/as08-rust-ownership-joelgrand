@@ -17,8 +17,20 @@ use std::collections::HashSet;
 ///   `(λx. (λy. x)) z` evaluates to `λy. z`.
 ///   `(λx. (λy. x)) a b` evaluates to `a`.
 pub fn eval(term: &Term) -> Term {
-    term.clone()
     // TODO: "Implement the eval function")
+    match term {
+        Term::Var(a) => var(a),
+        Term::Abs(a, b) => abs(a, eval(b)),
+        Term::App(b1, b2) => {
+            let left = eval(b1);
+            let right = eval(b2);
+
+            match &left { // only if left is abstraction
+                Term::Abs(var, term) => substitute(term, var, &right),
+                _ => app(left,right)
+            }
+        }
+    }
 }
 
 
@@ -126,6 +138,16 @@ mod tests {
     }
 
     #[test]
+    fn test_substitute_simple2() {
+        let term = app(var("x"), var("x"));
+        let replacement = var("z");
+        let substituted = substitute(&term, "x", &replacement);
+        let expected = app(var("z"), var("z"));
+        print!("{term}, {substituted}\n");
+        assert_eq!(substituted, expected);
+    }
+
+    #[test]
     fn test_substitute_capture_avoiding() {
         let term = abs("x", var("y"));
         let replacement = var("x");
@@ -140,6 +162,7 @@ mod tests {
         let term = app(abs("x", var("x")), var("y"));
         let evaluated = eval(&term);
         let expected = var("y");
+        print!("eval: {evaluated}, term: {term}\n");
         assert_eq!(evaluated, expected);
     }
 
